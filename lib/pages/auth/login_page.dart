@@ -5,6 +5,7 @@ import 'register_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../mainPages/index_page.dart';
+import 'getstarted.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginPage extends StatefulWidget {
@@ -22,6 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
 
   final String url = 'http://10.0.2.2:8000/api';
+  // final String url = 'https://75f9-105-113-68-246.ngrok-free.app/api';
 
   void signIn() async {
     try {
@@ -140,9 +142,23 @@ class _LoginPageState extends State<LoginPage> {
     // Save the JSON string to local storage
     prefs.setString(key, jsonString);
 
+    await _saveTimestamp();
+
     // int expirationTimestamp =
     //     DateTime.now().add(expirationDuration).millisecondsSinceEpoch;
     // prefs.setInt(_getExpirationKey(), expirationTimestamp);
+  }
+
+  Future<void> _saveTimestamp() async {
+    // Get the current timestamp
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    int currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+
+    // Save the timestamp to SharedPreferences
+    await prefs.setInt('userInfoTimestamp', currentTimestamp);
+
+    print('Timestamp saved: $currentTimestamp');
   }
 
   @override
@@ -167,7 +183,12 @@ class _LoginPageState extends State<LoginPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       GestureDetector(
-                        onTap: () => {Navigator.pop(context)},
+                        onTap: () => {
+                          Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const GetStartedPage()))
+                        },
                         child: Image.asset(
                           'lib/assets/Back.png',
                           // height: 30,

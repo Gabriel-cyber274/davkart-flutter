@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../mainPages/index_page.dart';
 import 'dart:math';
@@ -32,14 +33,13 @@ class _ProductInterestState extends State<ProductInterest> {
     {'name': 'Pet Supplies', 'checked': false},
     {'name': 'Baby and Kids', 'checked': false},
     {'name': 'Appliances', 'checked': false},
-    {'name': 'Jewelry and Watches', 'checked': false},
     {'name': 'Grocery and Gourmet', 'checked': false},
   ];
 
   void setInterest(proceed) async {
-    if (proceed) {
-      List<Map<String, Object>> selectedItem =
-          items.where((element) => element['checked'] == true).toList();
+    List<Map<String, Object>> selectedItem =
+        items.where((element) => element['checked'] == true).toList();
+    if (proceed && selectedItem.isNotEmpty) {
       for (var i = 0; i < selectedItem.length; i++) {
         try {
           final response = await http.post(
@@ -60,6 +60,7 @@ class _ProductInterestState extends State<ProductInterest> {
             final user = data['user'];
             // final interest = data['interest'];
             final token = data['token'];
+            saveData('userInfo', data);
 
             Navigator.pushReplacement(
               context,
@@ -77,43 +78,108 @@ class _ProductInterestState extends State<ProductInterest> {
         }
       }
     } else {
-      Random random = Random();
-      int randomNumber = random.nextInt(13);
-
-      try {
-        final response = await http.post(
-          Uri.parse('$url/userInterest'),
-          headers: <String, String>{
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(<String, dynamic>{
-            'email': widget.email,
-            'category': items[randomNumber]['name'].toString(),
-            // Add more key-value pairs as needed
-          }),
-        );
-
-        if (response.statusCode == 200 || response.statusCode == 201) {
-          Map<String, dynamic> data = jsonDecode(response.body);
-
-          final user = data['user'];
-          final token = data['token'];
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => IndexPage(
-                      userInfo: user,
-                      token: token,
-                    )),
+      for (var i = 0; i < items.length; i++) {
+        try {
+          final response = await http.post(
+            Uri.parse('$url/userInterest'),
+            headers: <String, String>{
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(<String, dynamic>{
+              'email': widget.email,
+              'category': items[i]['name'].toString(),
+              // Add more key-value pairs as needed
+            }),
           );
-        } else {
-          print('Request failed with status: ${response.statusCode}');
+
+          if (response.statusCode == 200 || response.statusCode == 201) {
+            Map<String, dynamic> data = jsonDecode(response.body);
+
+            final user = data['user'];
+            // final interest = data['interest'];
+            final token = data['token'];
+            saveData('userInfo', data);
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => IndexPage(
+                        userInfo: user,
+                        token: token,
+                      )),
+            );
+          } else {
+            print('Request failed with status: ${response.statusCode}');
+          }
+        } catch (e) {
+          print('Error during navigation: $e');
         }
-      } catch (e) {
-        print('Error during navigation: $e');
       }
+      // Random random = Random();
+      // int randomNumber = random.nextInt(13);
+
+      // try {
+      //   final response = await http.post(
+      //     Uri.parse('$url/userInterest'),
+      //     headers: <String, String>{
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: jsonEncode(<String, dynamic>{
+      //       'email': widget.email,
+      //       'category': items[randomNumber]['name'].toString(),
+      //       // Add more key-value pairs as needed
+      //     }),
+      //   );
+
+      //   if (response.statusCode == 200 || response.statusCode == 201) {
+      //     Map<String, dynamic> data = jsonDecode(response.body);
+
+      //     final user = data['user'];
+      //     final token = data['token'];
+      //     saveData('userInfo', data);
+
+      //     Navigator.push(
+      //       context,
+      //       MaterialPageRoute(
+      //           builder: (context) => IndexPage(
+      //                 userInfo: user,
+      //                 token: token,
+      //               )),
+      //     );
+      //   } else {
+      //     print('Request failed with status: ${response.statusCode}');
+      //   }
+      // } catch (e) {
+      //   print('Error during navigation: $e');
+      // }
     }
+  }
+
+  Future<void> saveData(String key, Object value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    // Convert the object to a JSON string
+    String jsonString = jsonEncode(value);
+
+    // Save the JSON string to local storage
+    prefs.setString(key, jsonString);
+
+    await _saveTimestamp();
+
+    // int expirationTimestamp =
+    //     DateTime.now().add(expirationDuration).millisecondsSinceEpoch;
+    // prefs.setInt(_getExpirationKey(), expirationTimestamp);
+  }
+
+  Future<void> _saveTimestamp() async {
+    // Get the current timestamp
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    int currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+
+    // Save the timestamp to SharedPreferences
+    await prefs.setInt('userInfoTimestamp', currentTimestamp);
+
+    print('Timestamp saved: $currentTimestamp');
   }
 
   @override
@@ -332,22 +398,27 @@ class _ProductInterestState extends State<ProductInterest> {
                                       ),
                                     ),
                                     child: Center(
-                                      child: Container(
-                                        // padding: const EdgeInsets.all(20),
-                                        height: 40,
-                                        width: screenWidth,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(20.0),
-                                        ),
-                                        child: const Center(
-                                          child: Text(
-                                            'I’ll do this later',
-                                            style: TextStyle(
-                                                fontSize: 13.65,
-                                                fontWeight: FontWeight.w500,
-                                                color: Color(0xFF010CA6)),
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setInterest(false);
+                                        },
+                                        child: Container(
+                                          // padding: const EdgeInsets.all(20),
+                                          height: 40,
+                                          width: screenWidth,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(20.0),
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'I’ll do this later',
+                                              style: TextStyle(
+                                                  fontSize: 13.65,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Color(0xFF010CA6)),
+                                            ),
                                           ),
                                         ),
                                       ),

@@ -1,4 +1,3 @@
-// import 'dart:js' as js;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:carousel_slider/carousel_slider.dart';
@@ -8,17 +7,18 @@ import '../../components/bottom_navigation_bar.dart';
 import 'profile_page.dart';
 import '../../components/nav.dart';
 import 'package:dots_indicator/dots_indicator.dart';
-import './my_products.dart';
+import '../../screens/new_product.dart';
+import './index_page.dart';
 
-class IndexPage extends StatefulWidget {
+class MyProducts extends StatefulWidget {
   final userInfo;
   final String token;
 
-  const IndexPage({Key? key, required this.userInfo, required this.token})
+  const MyProducts({Key? key, required this.userInfo, required this.token})
       : super(key: key);
 
   @override
-  State<IndexPage> createState() => _IndexPageState();
+  State<MyProducts> createState() => _MyProductsState();
 }
 
 class DisplayEntry {
@@ -58,8 +58,19 @@ class DisplayEntry3 {
   }
 }
 
-class _IndexPageState extends State<IndexPage> {
-  int _currentIndex = 0;
+class DisplayEntry4 {
+  int uid;
+  List<dynamic> filt;
+
+  DisplayEntry4({required this.uid, required this.filt});
+  @override
+  String toString() {
+    return 'DisplayEntry(uid: $uid, display: $filt)';
+  }
+}
+
+class _MyProductsState extends State<MyProducts> {
+  int _currentIndex = 1;
   List<String> itemsDot = [];
   List currentIndex = [];
   bool loading = false;
@@ -67,16 +78,14 @@ class _IndexPageState extends State<IndexPage> {
   // final String url = 'https://a747-105-113-81-41.ngrok-free.app/api';
   // final String imgUrl = 'https://a747-105-113-81-41.ngrok-free.app/api/imgs';
   final String imgUrl = 'http://10.0.2.2:8000/api/imgs';
-
   @override
   void initState() {
     super.initState();
     // arrangeData();
-    getProductsHome();
     setState(() {
-      _currentIndex = 0;
+      _currentIndex = 1;
     });
-    print(widget.userInfo['admin']);
+    getProductsHome();
   }
 
   List indexes2 = [];
@@ -84,8 +93,6 @@ class _IndexPageState extends State<IndexPage> {
   List productData = [];
 
   List filteredList2 = [];
-  List pendingOrder = [];
-  List completedOrder = [];
 
   void getProductsHome() async {
     // final String tokenU = ;
@@ -96,23 +103,7 @@ class _IndexPageState extends State<IndexPage> {
         loading = true;
       });
       final response = await http.get(
-        Uri.parse('$url/getUserInterestProducts'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      final response2 = await http.get(
-        Uri.parse('$url/getPendingOrder'),
-        headers: {
-          'Authorization': 'Bearer ${widget.token}',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      final response3 = await http.get(
-        Uri.parse('$url/getCompletedOrder'),
+        Uri.parse('$url/getAllUserProduct'),
         headers: {
           'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
@@ -139,28 +130,6 @@ class _IndexPageState extends State<IndexPage> {
         print('Failed with status code: ${response.statusCode}');
         print('Response body: ${response.body}');
       }
-      if (response2.statusCode == 200) {
-        // Successful request, handle the data here
-        Map<String, dynamic> data = json.decode(response2.body);
-
-        setState(() {
-          pendingOrder = data['order'];
-        });
-      } else {
-        print('Failed with status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      }
-      if (response3.statusCode == 200) {
-        // Successful request, handle the data here
-        Map<String, dynamic> data = json.decode(response3.body);
-
-        setState(() {
-          completedOrder = data['order'];
-        });
-      } else {
-        print('Failed with status code: ${response.statusCode}');
-        print('Response body: ${response.body}');
-      }
     } catch (e) {
       print('Error during navigation: $e');
       setState(() {
@@ -169,24 +138,44 @@ class _IndexPageState extends State<IndexPage> {
     }
   }
 
-  // void set2(index, dotI) {
-  //   setState(() {
-  //     currentIndex.add(index);
-  //     currentIndex2 = dotI;
-  //   });
-  // }
-
   void mainArrangement() {
     for (var i = 0; i < productData.length; i++) {
       setState(() {
-        filteredList2 = productData[i]['category']
-            .asMap()
-            .entries
-            .where((entry) => (entry.key + 1) % 6 == 0)
-            .map((entry) => entry.value)
-            .toList();
+        bool check2 = filteredList2.where((entry) => entry.uid == i).isNotEmpty;
+
+        if (check2) {
+          setState(() {
+            filteredList2.firstWhere((entry) => entry.uid == i).filt =
+                productData[i]['category']
+                    .asMap()
+                    .entries
+                    .where((entry) => (entry.key + 1) % 6 == 0)
+                    .map((entry) => entry.value)
+                    .toList();
+          });
+        } else {
+          setState(() {
+            filteredList2.add(DisplayEntry4(
+              uid: i,
+              filt: productData[i]['category']
+                  .asMap()
+                  .entries
+                  .where((entry) => (entry.key + 1) % 6 == 0)
+                  .map((entry) => entry.value)
+                  .toList(),
+            ));
+          });
+        }
+
+        // filteredList2 = productData[i]['category']
+        //     .asMap()
+        //     .entries
+        //     .where((entry) => (entry.key + 1) % 6 == 0)
+        //     .map((entry) => entry.value)
+        //     .toList();
       });
 
+      print(productData[i]['category'].length);
       bool check = currentIndex.where((entry) => entry.uid == i).isNotEmpty;
 
       if (check) {
@@ -218,9 +207,22 @@ class _IndexPageState extends State<IndexPage> {
           });
         }
 
-        setState(() {
-          filteredList2 = ['item'];
-        });
+        bool check2 = filteredList2.where((entry) => entry.uid == i).isNotEmpty;
+
+        if (check2) {
+          setState(() {
+            filteredList2.firstWhere((entry) => entry.uid == i).filt = ['item'];
+          });
+        } else {
+          setState(() {
+            filteredList2.add(DisplayEntry4(
+              uid: i,
+              filt: ['item'],
+            ));
+          });
+        }
+
+        print('2');
 
         // return {
         //   'dot': ['item'],
@@ -229,9 +231,31 @@ class _IndexPageState extends State<IndexPage> {
       } else if (productData[i]['category'].length > 6 &&
           ((filteredList2.length * 6) != productData[i]['category'].length)) {
         // List dotList = filteredList2;
-        setState(() {
-          filteredList2.add('item');
-        });
+
+        bool check2P =
+            filteredList2.where((entry) => entry.uid == i).isNotEmpty;
+
+        if (check2P) {
+          setState(() {
+            filteredList2
+                .firstWhere((entry) => entry.uid == i)
+                .filt
+                .add('item');
+          });
+        } else {
+          setState(() {
+            filteredList2.add(DisplayEntry4(
+              uid: i,
+              filt: ['item', 'item2'],
+            ));
+          });
+        }
+
+        // setState(() {
+        //   filteredList2.add('item');
+        // });
+
+        print('1');
         List<dynamic> slicedList = productData[i]['category'].sublist(0, 6);
         bool check = mainDisplay.where((entry) => entry.uid == i).isNotEmpty;
 
@@ -249,22 +273,27 @@ class _IndexPageState extends State<IndexPage> {
           });
         }
 
-        for (var j = 0; j < filteredList2.length; j++) {
+        for (var j = 0;
+            j < filteredList2.firstWhere((entry) => entry.uid == i).filt.length;
+            j++) {
           bool check2 = indexes2.where((entry) => entry.uid == i).isNotEmpty;
 
           if (check2 &&
               !(indexes2.firstWhere((entry) => entry.uid == i).filters.contains(
-                  productData[i]['category'].indexOf(filteredList2[j])))) {
+                  productData[i]['category'].indexOf(filteredList2
+                      .firstWhere((entry) => entry.uid == i)
+                      .filt[j])))) {
             setState(() {
-              indexes2
-                  .firstWhere((entry) => entry.uid == i)
-                  .filters
-                  .add(productData[i]['category'].indexOf(filteredList2[j]));
+              indexes2.firstWhere((entry) => entry.uid == i).filters.add(
+                  productData[i]['category'].indexOf(filteredList2
+                      .firstWhere((entry) => entry.uid == i)
+                      .filt[j]));
             });
           } else if (!check2) {
             setState(() {
               indexes2.add(DisplayEntry2(uid: i, filters: [
-                productData[i]['category'].indexOf(filteredList2[j])
+                productData[i]['category'].indexOf(
+                    filteredList2.firstWhere((entry) => entry.uid == i).filt[j])
               ]));
             });
           }
@@ -295,22 +324,29 @@ class _IndexPageState extends State<IndexPage> {
           });
         }
 
-        for (var j = 0; j < filteredList2.length; j++) {
+        print('3');
+
+        for (var j = 0;
+            j < filteredList2.firstWhere((entry) => entry.uid == i).filt.length;
+            j++) {
           bool check2 = indexes2.where((entry) => entry.uid == i).isNotEmpty;
 
           if (check2 &&
               !(indexes2.firstWhere((entry) => entry.uid == i).filters.contains(
-                  productData[i]['category'].indexOf(filteredList2[j])))) {
+                  productData[i]['category'].indexOf(filteredList2
+                      .firstWhere((entry) => entry.uid == i)
+                      .filt[j])))) {
             setState(() {
-              indexes2
-                  .firstWhere((entry) => entry.uid == i)
-                  .filters
-                  .add(productData[i]['category'].indexOf(filteredList2[j]));
+              indexes2.firstWhere((entry) => entry.uid == i).filters.add(
+                  productData[i]['category'].indexOf(filteredList2
+                      .firstWhere((entry) => entry.uid == i)
+                      .filt[j]));
             });
           } else if (!check2) {
             setState(() {
               indexes2.add(DisplayEntry2(uid: i, filters: [
-                productData[i]['category'].indexOf(filteredList2[j])
+                productData[i]['category'].indexOf(
+                    filteredList2.firstWhere((entry) => entry.uid == i).filt[j])
               ]));
             });
           }
@@ -321,6 +357,8 @@ class _IndexPageState extends State<IndexPage> {
         //   // 'display': slicedList,
         // };
       }
+
+      print('list2 ${filteredList2}');
     }
   }
 
@@ -356,6 +394,8 @@ class _IndexPageState extends State<IndexPage> {
     final isHorizontal = screenWidth > screenHeight;
     final List<List<CarouselController>> _controller = [];
 
+    print('list ${filteredList2.length}');
+
     for (var i = 0; i < productData.length; i++) {
       final List<CarouselController> _controllers = List.generate(
         productData[i]['category'].length,
@@ -374,6 +414,7 @@ class _IndexPageState extends State<IndexPage> {
             setState(() {
               _currentIndex = index;
             });
+            // print('index: $index');
 
             if (index == 4) {
               Navigator.push(
@@ -422,16 +463,65 @@ class _IndexPageState extends State<IndexPage> {
                   child: Center(
                     child: Column(
                       children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => MyProductCreate(
+                                        token: widget.token,
+                                        userInfo: widget.userInfo,
+                                      )),
+                            );
+                          },
+                          child: Container(
+                            width: screenWidth,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF010CA6),
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: const Center(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Add new product(s)',
+                                    style: TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.white),
+                                  ),
+                                  SizedBox(
+                                    width: 3,
+                                  ),
+                                  Text(
+                                    '+',
+                                    style: TextStyle(
+                                        fontSize: 25, color: Colors.white),
+                                  )
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(
+                          height: 30,
+                        ),
                         Center(
                           child: productData.isNotEmpty
-                              ? const Text(
-                                  'Current lisitings',
+                              ? Text(
+                                  'Product listings',
                                   style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500),
                                 )
                               : SizedBox(),
+                        ),
+                        const SizedBox(
+                          height: 20,
                         ),
                         loading
                             ? Container(
@@ -445,15 +535,13 @@ class _IndexPageState extends State<IndexPage> {
                               ))
                             : productData.isEmpty
                                 ? Container(
-                                    height: screenHeight / 1.5,
+                                    height: screenHeight,
                                     child: Center(
                                       child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
                                         children: [
-                                          // SizedBox(
-                                          //   height: 30,
-                                          // ),
+                                          SizedBox(
+                                            height: 12,
+                                          ),
                                           Image.asset(
                                             'lib/assets/Character2.png',
                                             // height: 28,
@@ -477,7 +565,7 @@ class _IndexPageState extends State<IndexPage> {
                                     child: Container(
                                       height: screenHeight *
                                           ((productData.length) /
-                                              1.5), // Adjust the height as needed
+                                              1.2), // Adjust the height as needed
                                       child: ListView.builder(
                                         itemCount: productData.length,
                                         itemBuilder:
@@ -485,19 +573,59 @@ class _IndexPageState extends State<IndexPage> {
                                           return Container(
                                             child: Column(
                                               children: [
-                                                const SizedBox(
-                                                  height: 20,
-                                                ),
                                                 Padding(
                                                   padding: const EdgeInsets
                                                       .symmetric(horizontal: 0),
                                                   child: Container(
                                                     width: screenWidth,
-                                                    height: 500,
+                                                    height: 550,
                                                     decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              20.0), // Adjust the border radius as needed
+                                                      borderRadius: productData
+                                                                  .length ==
+                                                              1
+                                                          ? BorderRadiusDirectional
+                                                              .only(
+                                                              bottomStart:
+                                                                  Radius
+                                                                      .circular(
+                                                                          20.0),
+                                                              topStart: Radius
+                                                                  .circular(
+                                                                      20.0),
+                                                              bottomEnd: Radius
+                                                                  .circular(
+                                                                      20.0),
+                                                              topEnd: Radius
+                                                                  .circular(
+                                                                      20.0),
+                                                            )
+                                                          : index ==
+                                                                  productData
+                                                                          .length -
+                                                                      1
+                                                              ? BorderRadiusDirectional
+                                                                  .only(
+                                                                  bottomStart: Radius
+                                                                      .circular(
+                                                                          20.0),
+                                                                  bottomEnd: Radius
+                                                                      .circular(
+                                                                          20.0),
+                                                                )
+                                                              : index == 0
+                                                                  ? BorderRadiusDirectional
+                                                                      .only(
+                                                                      topStart:
+                                                                          Radius.circular(
+                                                                              20.0),
+                                                                      topEnd: Radius
+                                                                          .circular(
+                                                                              20.0),
+                                                                    )
+                                                                  : BorderRadiusDirectional
+                                                                      .all(Radius
+                                                                          .circular(
+                                                                              0)), // Adjust the border radius as needed
                                                       gradient:
                                                           const LinearGradient(
                                                         begin:
@@ -511,9 +639,31 @@ class _IndexPageState extends State<IndexPage> {
                                                       ),
                                                     ),
                                                     child: Padding(
-                                                      padding:
-                                                          const EdgeInsets.all(
-                                                              2.0),
+                                                      padding: productData
+                                                                  .length ==
+                                                              1
+                                                          ? const EdgeInsets
+                                                              .all(2)
+                                                          : index == 0
+                                                              ? const EdgeInsets
+                                                                  .fromLTRB(
+                                                                  2, 2, 2, 0)
+                                                              : index ==
+                                                                      productData
+                                                                              .length -
+                                                                          1
+                                                                  ? const EdgeInsets
+                                                                      .fromLTRB(
+                                                                      2,
+                                                                      0,
+                                                                      2,
+                                                                      2)
+                                                                  : const EdgeInsets
+                                                                      .fromLTRB(
+                                                                      2,
+                                                                      0,
+                                                                      2,
+                                                                      0),
                                                       child: Center(
                                                         child: Container(
                                                           padding: EdgeInsets
@@ -521,12 +671,35 @@ class _IndexPageState extends State<IndexPage> {
                                                                   horizontal:
                                                                       10),
                                                           decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          20.0),
-                                                              color:
-                                                                  Colors.white),
+                                                              borderRadius: productData.length == 1
+                                                                  ? BorderRadiusDirectional.only(
+                                                                      bottomStart:
+                                                                          Radius.circular(
+                                                                              20.0),
+                                                                      topStart:
+                                                                          Radius.circular(
+                                                                              20.0),
+                                                                      bottomEnd:
+                                                                          Radius.circular(
+                                                                              20.0),
+                                                                      topEnd: Radius
+                                                                          .circular(
+                                                                              20.0),
+                                                                    )
+                                                                  : index == productData.length - 1
+                                                                      ? BorderRadiusDirectional.only(
+                                                                          bottomStart:
+                                                                              Radius.circular(20.0),
+                                                                          bottomEnd:
+                                                                              Radius.circular(20.0),
+                                                                        )
+                                                                      : index == 0
+                                                                          ? BorderRadiusDirectional.only(
+                                                                              topStart: Radius.circular(20.0),
+                                                                              topEnd: Radius.circular(20.0),
+                                                                            )
+                                                                          : BorderRadiusDirectional.all(Radius.circular(0)),
+                                                              color: Colors.white),
                                                           width: screenWidth,
                                                           child: Column(
                                                             children: [
@@ -611,6 +784,8 @@ class _IndexPageState extends State<IndexPage> {
                                                                             reason) {
                                                                       setState(
                                                                           () {
+                                                                        print(
+                                                                            'hhh $indexes2');
                                                                         bool check = currentIndex
                                                                             .where((entry) =>
                                                                                 entry.uid ==
@@ -682,6 +857,11 @@ class _IndexPageState extends State<IndexPage> {
                                                                     //  dotColor: Colors.blue,
                                                                   ),
                                                                   items: filteredList2
+                                                                      .firstWhere((entry) =>
+                                                                          entry
+                                                                              .uid ==
+                                                                          index)
+                                                                      .filt
                                                                       .map<Widget>(
                                                                           (item) {
                                                                     return Builder(
@@ -720,32 +900,45 @@ class _IndexPageState extends State<IndexPage> {
                                                                                   crossAxisAlignment: CrossAxisAlignment.stretch,
                                                                                   children: [
                                                                                     Expanded(
-                                                                                      child: Container(
-                                                                                        height: 91,
-                                                                                        // width: 200,
-                                                                                        decoration: BoxDecoration(color: Color(0xFFD9D9D9), borderRadius: BorderRadius.circular(10), border: Border.all(width: 1.5, color: Color(0xFF010CA6))),
-                                                                                        child: Column(
-                                                                                          children: [
-                                                                                            Expanded(
-                                                                                              child: Container(
-                                                                                                child: Image.network(
-                                                                                                  '$imgUrl/${mainDisplay.firstWhere((entry) => entry.uid == index).display[indexM]['product'][0]['file_path'].substring(20)}',
-                                                                                                  width: 70,
-                                                                                                  height: 63,
-                                                                                                  errorBuilder: (context, error, stackTrace) {
-                                                                                                    print('Error loading image: $error');
-                                                                                                    return Icon(
-                                                                                                      Icons.error,
-                                                                                                      size: 70, // Adjust the size based on your requirements
-                                                                                                      color: Colors.red, // Customize the color
-                                                                                                    );
-                                                                                                  },
+                                                                                      child: Stack(children: [
+                                                                                        Container(
+                                                                                          height: 132,
+                                                                                          width: 200,
+                                                                                          decoration: BoxDecoration(color: Color(0xFFD9D9D9), borderRadius: BorderRadius.circular(10), border: Border.all(width: 1.5, color: Color(0xFF010CA6))),
+                                                                                          child: Column(
+                                                                                            children: [
+                                                                                              Expanded(
+                                                                                                child: Container(
+                                                                                                  child: Image.network(
+                                                                                                    '$imgUrl/${mainDisplay.firstWhere((entry) => entry.uid == index).display[indexM]['product'][0]['file_path'].substring(20)}',
+                                                                                                    width: 70,
+                                                                                                    height: 63,
+                                                                                                    errorBuilder: (context, error, stackTrace) {
+                                                                                                      print('Error loading image: $error');
+                                                                                                      return Icon(
+                                                                                                        Icons.error,
+                                                                                                        size: 70, // Adjust the size based on your requirements
+                                                                                                        color: Colors.red, // Customize the color
+                                                                                                      );
+                                                                                                    },
+                                                                                                  ),
                                                                                                 ),
                                                                                               ),
-                                                                                            ),
-                                                                                          ],
+                                                                                            ],
+                                                                                          ),
                                                                                         ),
-                                                                                      ),
+                                                                                        Positioned(
+                                                                                            bottom: 0,
+                                                                                            right: -2,
+                                                                                            child: Container(
+                                                                                                width: 23,
+                                                                                                height: 23,
+                                                                                                decoration: BoxDecoration(color: Color(0xFFFED800), borderRadius: BorderRadius.circular(100)),
+                                                                                                child: Icon(
+                                                                                                  Icons.edit,
+                                                                                                  size: 13,
+                                                                                                )))
+                                                                                      ]),
                                                                                     ),
                                                                                     SizedBox(
                                                                                       height: 10,
@@ -767,7 +960,7 @@ class _IndexPageState extends State<IndexPage> {
                                                                                         ),
                                                                                       ],
                                                                                     ),
-                                                                                    const SizedBox(
+                                                                                    SizedBox(
                                                                                       height: 6,
                                                                                     ),
                                                                                     Row(
@@ -797,7 +990,7 @@ class _IndexPageState extends State<IndexPage> {
                                                                           index][0],
                                                                 ),
                                                               ),
-                                                              SizedBox(
+                                                              const SizedBox(
                                                                 height: 12,
                                                               ),
                                                               productData[index]
@@ -805,7 +998,8 @@ class _IndexPageState extends State<IndexPage> {
                                                                               'category']
                                                                           .length <=
                                                                       6
-                                                                  ? Text('')
+                                                                  ? const Text(
+                                                                      '')
                                                                   : Center(
                                                                       child:
                                                                           Container(
@@ -824,7 +1018,7 @@ class _IndexPageState extends State<IndexPage> {
                                                                                 Row(
                                                                               mainAxisAlignment: MainAxisAlignment.center,
                                                                               children: List<Widget>.generate(
-                                                                                filteredList2.length,
+                                                                                filteredList2.firstWhere((entry) => entry.uid == index).filt.length,
                                                                                 (dotIndex) {
                                                                                   bool isCurrent = currentIndex.firstWhere((entry) => entry.uid == index).current == dotIndex;
 
@@ -896,6 +1090,42 @@ class _IndexPageState extends State<IndexPage> {
                                                                         ),
                                                                       ),
                                                                     ),
+                                                              const SizedBox(
+                                                                height: 10,
+                                                              ),
+                                                              GestureDetector(
+                                                                onTap: () {
+                                                                  print(
+                                                                      'hello');
+                                                                },
+                                                                child:
+                                                                    Container(
+                                                                  width: 218,
+                                                                  padding: EdgeInsets
+                                                                      .symmetric(
+                                                                          vertical:
+                                                                              7),
+                                                                  decoration: BoxDecoration(
+                                                                      color: Color(
+                                                                          0xFF010CA6),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                              20)),
+                                                                  child: Center(
+                                                                    child:
+                                                                        const Text(
+                                                                      'View all',
+                                                                      style: TextStyle(
+                                                                          fontSize:
+                                                                              14,
+                                                                          fontWeight: FontWeight
+                                                                              .w500,
+                                                                          color:
+                                                                              Colors.white),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              )
                                                             ],
                                                           ),
                                                         ),
@@ -914,149 +1144,9 @@ class _IndexPageState extends State<IndexPage> {
                         const SizedBox(
                           height: 25,
                         ),
-                        widget.userInfo['admin'] && !loading
-                            ? Column(
-                                children: [
-                                  const Text(
-                                    'Order statuses',
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500),
-                                  ),
-                                  const SizedBox(
-                                    height: 10,
-                                  ),
-                                  Container(
-                                    width: screenWidth,
-                                    // height: 550,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(
-                                          20.0), // Adjust the border radius as needed
-                                      gradient: const LinearGradient(
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                        colors: [
-                                          Color(0xFF010CA6),
-                                          Color(0xFFFFDB00),
-                                        ],
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(2.0),
-                                      child: Center(
-                                        child: Container(
-                                          padding: EdgeInsets.all(15),
-                                          decoration: BoxDecoration(
-                                              borderRadius:
-                                                  BorderRadius.circular(20.0),
-                                              color: Colors.white),
-                                          width: screenWidth,
-                                          child: Column(
-                                            children: [
-                                              const Text(
-                                                'Monitor Order Progress',
-                                                style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.w400),
-                                              ),
-                                              const SizedBox(
-                                                height: 26,
-                                              ),
-                                              Container(
-                                                padding: EdgeInsets.fromLTRB(
-                                                    15, 10, 15, 10),
-                                                decoration: BoxDecoration(
-                                                    color: Color(0xFFFED800),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.grey
-                                                            .withOpacity(
-                                                                0.5), // Shadow color
-                                                        spreadRadius:
-                                                            5, // Spread radius
-                                                        blurRadius:
-                                                            7, // Blur radius
-                                                        offset: Offset(0,
-                                                            3), // Offset in the x, y direction
-                                                      ),
-                                                    ],
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10)),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Text(
-                                                      'Pending Orders (${pendingOrder.length})',
-                                                      style: const TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w400),
-                                                    ),
-                                                    Image.asset(
-                                                        'lib/assets/ARROW LEFT.png')
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                height: 20,
-                                              ),
-                                              Container(
-                                                padding: EdgeInsets.fromLTRB(
-                                                    15, 10, 15, 10),
-                                                decoration: BoxDecoration(
-                                                    color: Color(0xFF34A853),
-                                                    boxShadow: [
-                                                      BoxShadow(
-                                                        color: Colors.grey
-                                                            .withOpacity(
-                                                                0.5), // Shadow color
-                                                        spreadRadius:
-                                                            5, // Spread radius
-                                                        blurRadius:
-                                                            7, // Blur radius
-                                                        offset: Offset(0,
-                                                            3), // Offset in the x, y direction
-                                                      ),
-                                                    ],
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            10)),
-                                                child: Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    const Text(
-                                                      'Completed orders',
-                                                      style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w400),
-                                                    ),
-                                                    Image.asset(
-                                                        'lib/assets/ARROW LEFT.png')
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox(),
+
+                        // new levels
+                        // Text('hello')
                       ],
                     ),
                   ),

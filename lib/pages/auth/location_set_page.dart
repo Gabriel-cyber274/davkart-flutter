@@ -365,6 +365,7 @@ class _LocationSetState extends State<LocationSet> {
                                             ],
                                           ),
                                         ),
+                                 
                                   const SizedBox(
                                     height: 30,
                                   ),
@@ -495,6 +496,7 @@ class _LocationSetState extends State<LocationSet> {
                                       ),
                                     ),
                                   ),
+                                
                                 ),
                               ],
                             )
